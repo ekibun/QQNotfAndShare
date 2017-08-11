@@ -185,7 +185,16 @@ public class PreferencesActivity extends Activity {
         AlertDialog.Builder builder=new AlertDialog.Builder(this);
         builder.setTitle(getString(R.string.about_dialog_title));
         builder.setMessage(getString(R.string.about_dialog_message));
-        builder.setNeutralButton(R.string.about_dialog_github, null);
+        builder.setNeutralButton(R.string.about_dialog_github, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Intent intent = new Intent();
+                intent.setAction(Intent.ACTION_VIEW);
+                Uri content_url = Uri.parse("https://github.com/acaoairy/QQNotfAndShare");
+                intent.setData(content_url);
+                startActivity(Intent.createChooser(intent, null));
+            }
+        });
         builder.setNegativeButton(R.string.about_dialog_support, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
