@@ -79,14 +79,13 @@ public class NotificationMonitorService extends NotificationListenerService {
         if (notification == null)
             return;
         ArrayList<String> msgs = getMsgList(tag);
-        msgs.add(0, notification.tickerText.toString());
         //标题/内容
         String title = notification.extras.getString(Notification.EXTRA_TITLE);
         title = getString(tag).equals(title)? notification.extras.getString(Notification.EXTRA_TEXT):title;
+        if(title == null)
+            return;//QQ电话
+        msgs.add(0, notification.tickerText.toString());
         int count = getNotifCount(title);
-        //只有一条时显示标题
-        if(count == 1)
-            title = notification.extras.getString(Notification.EXTRA_TITLE);
         //删除多余消息
         for(int i = Math.max(0, Math.min(count, maxCount)); i< msgs.size(); ){
             msgs.remove(i);
