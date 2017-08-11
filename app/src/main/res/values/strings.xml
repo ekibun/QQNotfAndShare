@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">\0</string>
+    <string name="acc_desc">用于在QQ打开时隐藏QQ消息</string>
+
+    <string name="pref_cate_permit">权限</string>
+    <string name="pref_notf_permit">通知使用权</string>
+    <string name="pref_aces_permit">无障碍服务</string>
+    <string name="pref_save_permit">存储权限</string>
+    <string name="pref_cate_other">其他</string>
+    <string name="pref_hide_share">隐藏“分享到QQ”</string>
+    <string name="pref_hide_launcher">隐藏启动器图标</string>
+    <string name="pref_cate_about">关于</string>
+    <string name="pref_version_code">版本号</string>
+
+    <string name="pref_enable_permit">已启用</string>
+    <string name="pref_disable_permit">已禁用</string>
+
+    <string name="qq">QQ</string>
+    <string name="tim">TIM</string>
+
+    <!--关于页-->
+    <string name="about_dialog_title">关于</string>
+    <string name="about_dialog_message">1.替换QQ消息（仅支持TIM和QQ）\n显示每条消息的内容\n\n2.添加分享接口\n转发消息解决chrome分享图片到QQ出现“图片不存在”错误\n用QQ Api来转发文字中包含链接的分享\n网易云链接分享可直接播放\n\n如果QQ通知没变化，请尝试重启手机\n如果QQ通知有效后突然无效，请尝试重新开关通知使用权</string>
+    <string name="about_dialog_support">打赏</string>
+    <string name="about_dialog_github">GitHub</string>
+    <string name="about_dialog_button">确定</string>
+</resources>
