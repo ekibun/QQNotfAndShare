@@ -30,12 +30,21 @@ public class AccessibilityMonitorService extends AccessibilityService {
         int eventType = event.getEventType();
         switch (eventType) {
             case AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED:
-                Log.v("class",event.getClassName().toString());
+            {
+                if(event.getPackageName() == null || event.getClassName() == null)
+                    return;
+                int tag = NotificationMonitorService.getTagfromPackageName(event.getPackageName().toString());
+                String className = event.getClassName().toString();
+                Log.v("class", className);
                 if("com.tencent.mobileqq.activity.SplashActivity".equals(event.getClassName()) ||
                         "com.dataline.activities.LiteActivity".equals(event.getClassName())){
-                    int tag = NotificationMonitorService.getTagfromPackageName(event.getPackageName().toString());
                     ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).cancel(tag);
+                }else if(className.startsWith("cooperation.qzone.")){
+                    ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).cancel(tag + 1);
                 }
+
+            }
+            break;
         }
     }
 

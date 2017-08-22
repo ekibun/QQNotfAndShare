@@ -1,17 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
     <PreferenceCategory android:title="@string/pref_cate_permit">
-        <Preference
-            android:key="notf_permit"
-            android:title="@string/pref_notf_permit" />
-        <Preference
-            android:key="aces_permit"
-            android:title="@string/pref_aces_permit" />
-        <Preference
-            android:key="save_permit"
-            android:title="@string/pref_save_permit" />
+        <PreferenceScreen android:title="@string/pref_cate_permit">
+            <Preference
+                android:key="notf_permit"
+                android:title="@string/pref_notf_permit" />
+            <Preference
+                android:key="aces_permit"
+                android:title="@string/pref_aces_permit" />
+            <Preference
+                android:key="save_permit"
+                android:title="@string/pref_save_permit" />
+        </PreferenceScreen>
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/pref_cate_other">
+        <PreferenceScreen android:title="@string/pref_cate_style">
+            <SwitchPreference
+                android:key="use_full_icon"
+                android:title="@string/pref_use_full_icon" />
+            <SwitchPreference
+                android:key="use_default_sound"
+                android:title="@string/pref_use_default_sound" />
+        </PreferenceScreen>
         <SwitchPreference
             android:key="hide_share"
             android:title="@string/pref_hide_share" />

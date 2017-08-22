@@ -7,10 +7,14 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.Icon;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import android.support.v4.app.NotificationCompat;
@@ -55,7 +59,8 @@ public class NotificationMonitorService extends NotificationListenerService {
     private int getIcon(int tag){
         switch (tag){
             case R.string.qq:
-                return R.drawable.ic_qq;
+                return PreferenceManager.getDefaultSharedPreferences(this).
+                        getBoolean("use_full_icon", false) ? R.drawable.ic_qq_full : R.drawable.ic_qq;
             case R.string.tim:
                 return R.drawable.ic_tim;
         }
@@ -64,6 +69,7 @@ public class NotificationMonitorService extends NotificationListenerService {
 
     final ArrayList<String> msgQQ = new  ArrayList<String>();
     final ArrayList<String> msgTim = new  ArrayList<String>();
+    final ArrayList<String> msgQzone = new  ArrayList<String>();
     private ArrayList<String> getMsgList(int tag){
         switch (tag){
             case R.string.qq:
@@ -78,41 +84,78 @@ public class NotificationMonitorService extends NotificationListenerService {
         Notification notification = sbn.getNotification();
         if (notification == null)
             return;
-        ArrayList<String> msgs = getMsgList(tag);
         //标题/内容
-        String title = notification.extras.getString(Notification.EXTRA_TITLE);
-        title = getString(tag).equals(title)? notification.extras.getString(Notification.EXTRA_TEXT):title;
-        if(title == null)
-            return;//QQ电话
-        msgs.add(0, notification.tickerText.toString());
-        int count = getNotifCount(title);
+        String notf_title = notification.extras.getString(Notification.EXTRA_TITLE);
+        String notf_text = notification.extras.getString(Notification.EXTRA_TEXT);
+        if(notf_text!= null && !notf_text.isEmpty())
+            notf_text = notf_text.replaceAll("\n", " ");
+        String notf_ticker = "";
+        if(notification.tickerText!= null){
+            notf_ticker = notification.tickerText.toString();
+            notf_ticker = notf_ticker.replaceAll("\n", " ");
+        }
+        boolean mul = getString(tag).equals(notf_title);
+        String title = mul? notf_text: notf_title; ///notification.extras.getString(Notification.EXTRA_TITLE);
+        //title = getString(tag).equals(title)? notification.extras.getString(Notification.EXTRA_TEXT):title;
+        //非消息
+        if(title == null || notf_ticker.isEmpty() || title.equals(notf_ticker))
+            return;
+        String msg = notf_ticker + "\n" + (mul ? notf_ticker :notf_text);
+
+        //单独处理QQ空间
+        boolean isQzone = false;
+        int count = 1;
+        Matcher matcher = Pattern.compile("QQ空间动态\\(共(\\d+)条未读\\)$").matcher(title);
+        if (matcher.find() && notf_ticker.equals(notf_text)){
+            isQzone = true;
+            count = Integer.parseInt(matcher.group(1));
+        }
+
+        ArrayList<String> msgs = isQzone ? msgQzone : getMsgList(tag);
+        msgs.add(0, msg);
+        //消息数量
+        if(!isQzone){
+            matcher = Pattern.compile("(\\d+)\\S{1,3}新消息\\)?$").matcher(title);
+            if (matcher.find())
+                count = Integer.parseInt(matcher.group(1));
+        }
         //删除多余消息
         for(int i = Math.max(0, Math.min(count, maxCount)); i< msgs.size(); ){
             msgs.remove(i);
         }
-        android.support.v4.app.NotificationCompat.InboxStyle style = new android.support.v4.app.NotificationCompat.InboxStyle();
+        Notification.InboxStyle style = new Notification.InboxStyle();
         style.setBigContentTitle(title);
-        for(String s: msgs)
-            style.addLine(s);
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
+        String first = "";
+        for(String s: msgs) {
+            String[] ss = s.split("\n");
+            String m = ss.length > 1 ? ss[mul ? 0: 1] : s;
+            style.addLine(m);
+            if(first.isEmpty())
+                first = m;
+        }
+        Notification.Builder builder = new Notification.Builder(this)
                 .setSubText(getString(tag))
                 .setContentTitle(title)
-                .setContentText(msgs.get(0))
-                .setColor(ContextCompat.getColor(getApplicationContext(), R.color.colorPrimary))
-                .setSmallIcon(getIcon(tag))
+                .setContentText(first)
+                .setColor(ContextCompat.getColor(getApplicationContext(), isQzone? R.color.colorQzone : R.color.colorPrimary))
+                .setSmallIcon(isQzone? R.drawable.ic_qzone : getIcon(tag))
                 .setLargeIcon((Bitmap)notification.extras.get(Notification.EXTRA_LARGE_ICON))
                 .setStyle(style)
                 .setAutoCancel(true)
                 .setContentIntent(notification.contentIntent)
                 .setDeleteIntent(notification.deleteIntent)
                 .setPriority(notification.priority)
-                .setSound(notification.sound);
-        ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).notify(tag, builder.build());
+                .setSound(notification.sound)
+                .setLights(notification.ledARGB, notification.ledOnMS, notification.ledOffMS)
+                .setVibrate(notification.vibrate);
+        if(PreferenceManager.getDefaultSharedPreferences(this).getBoolean("use_default_sound", false))
+            builder.setDefaults(Notification.DEFAULT_SOUND);
+        ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).notify(tag + (isQzone? 1 : 0), builder.build());
         if(Build.VERSION.SDK_INT >= 23)
             setNotificationsShown(new String[]{sbn.getKey()});
         cancelNotification(sbn.getKey());
     }
-
+/*
     private int getNotifCount(String title){
         int count = 1;
         Matcher matcher = Pattern.compile("(\\d+)\\S{1,3}新消息\\)?$").matcher(title);
@@ -122,7 +165,7 @@ public class NotificationMonitorService extends NotificationListenerService {
         }
         return count;
     }
-
+*/
     // 在删除消息时触发
     @Override
     public void onNotificationRemoved(StatusBarNotification sbn) {

@@ -49,22 +49,21 @@ public class PreferencesActivity extends Activity {
 
         @Override
         public boolean onPreferenceTreeClick(PreferenceScreen preferenceScreen, Preference preference){
-            Log.d("onPreferenceTreeClick",preference.getKey());
-
-            if(preference.getKey().equals("notf_permit"))
+            //Log.d("onPreferenceTreeClick",preference.getKey());
+            if("notf_permit".equals(preference.getKey()))
                 openNotificationListenSettings();
-            if(preference.getKey().equals("aces_permit"))
+            if("aces_permit".equals(preference.getKey()))
                 startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
-            if(Build.VERSION.SDK_INT >= 23 && preference.getKey().equals("save_permit") && !isStorageEnable())
+            if(Build.VERSION.SDK_INT >= 23 && "save_permit".equals(preference.getKey()) && !isStorageEnable())
                 requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_STORAGE_CODE);
-            if(preference.getKey().equals("version_code"))
+            if("version_code".equals(preference.getKey()))
                 ((PreferencesActivity)getActivity()).showInfo();
             return false;
         }
 
         @Override
         public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-            if(key.equals("hide_share")){
+            if("hide_share".equals(key)){
                 PackageManager pkg=getActivity().getPackageManager();
                 if(sharedPreferences.getBoolean(key, false)){
                     pkg.setComponentEnabledSetting(new ComponentName(getActivity(), ShareActivity.class),
@@ -74,7 +73,7 @@ public class PreferencesActivity extends Activity {
                             PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
                 }
             }
-            if(key.equals("hide_launcher")){
+            if("hide_launcher".equals(key)){
                 PackageManager pkg=getActivity().getPackageManager();
                 if(sharedPreferences.getBoolean(key, false)){
                     pkg.setComponentEnabledSetting(new ComponentName(getActivity(), SplashActivity.class),
