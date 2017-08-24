@@ -15,9 +15,15 @@
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/pref_cate_other">
         <PreferenceScreen android:title="@string/pref_cate_style">
-            <SwitchPreference
-                android:key="use_full_icon"
-                android:title="@string/pref_use_full_icon" />
+            <ListPreference
+                android:key="icon_mode"
+                android:title="@string/pref_icon_mode"
+                android:defaultValue="0"
+                android:entries="@array/pref_icon_mode"
+                android:entryValues="@array/pref_icon_mode_value"/>
+            <Preference
+                android:key="icon_path"
+                android:title="@string/pref_icon_path" />
             <SwitchPreference
                 android:key="use_default_sound"
                 android:title="@string/pref_use_default_sound" />

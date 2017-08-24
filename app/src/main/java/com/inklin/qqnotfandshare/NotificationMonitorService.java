@@ -208,7 +208,7 @@ public class NotificationMonitorService extends NotificationListenerService {
                 .setContentTitle(title)
                 .setContentText(text)
                 .setColor(ContextCompat.getColor(getApplicationContext(), isQzone ? R.color.colorQzone : R.color.colorPrimary))
-                .setSmallIcon(isQzone ? R.drawable.ic_qzone : getIcon(tag))
+                //.setSmallIcon(isQzone ? R.drawable.ic_qzone : getIcon(tag))
                 .setLargeIcon((Bitmap) notification.extras.get(Notification.EXTRA_LARGE_ICON))
                 .setStyle(style)
                 .setAutoCancel(true)
@@ -220,6 +220,7 @@ public class NotificationMonitorService extends NotificationListenerService {
                 .setVibrate(notification.vibrate)
                 .setShowWhen(true)
                 .setGroupSummary(setGroupSummary);
+        setIcon(builder, tag, isQzone);
         if(group)
             builder.setGroup("GROUP");
         if (PreferenceManager.getDefaultSharedPreferences(this).getBoolean("use_default_sound", false))
@@ -255,16 +256,39 @@ public class NotificationMonitorService extends NotificationListenerService {
         return R.string.qq;
     }
 
-    private int getIcon(int tag){
+    private String path = "";
+    private Icon icon;
+    private void setIcon(Notification.Builder builder, int tag, boolean isQzone){
+        if(isQzone) {
+            builder.setSmallIcon(R.drawable.ic_qzone);
+            return;
+        }
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+        int mode = Integer.parseInt(sp.getString("icon_mode","0"));
+        if(mode == 2 && Build.VERSION.SDK_INT >= 23){
+            String s = sp.getString("icon_path","");
+            if(icon == null || !s.equals(path)){
+                path = s;
+                Bitmap bmp = BitmapFactory.decodeFile(path);
+                if(bmp != null)
+                    icon = Icon.createWithBitmap(bmp);
+            }
+            if(icon != null) {
+                builder.setSmallIcon(icon);
+                return;
+            }
+        }
+        int iconRes = R.drawable.ic_qq;
         switch (tag){
             case id_qq://R.string.qq:
             case id_qqlite://R.string.qqlite:
-                return PreferenceManager.getDefaultSharedPreferences(this).
-                        getBoolean("use_full_icon", false) ? R.drawable.ic_qq_full : R.drawable.ic_qq;
+                iconRes =  mode == 1? R.drawable.ic_qq_full : R.drawable.ic_qq;
+                break;
             case id_tim://R.string.tim:
-                return R.drawable.ic_tim;
+                iconRes =  R.drawable.ic_tim;
+                break;
         }
-        return R.drawable.ic_qq;
+        builder.setSmallIcon(iconRes);
     }
 
     public static int getTagfromPackageName(String packageName){

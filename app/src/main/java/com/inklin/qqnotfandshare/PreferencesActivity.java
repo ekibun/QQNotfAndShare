@@ -12,6 +12,7 @@ import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -23,12 +24,15 @@ import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
 import android.provider.DocumentsContract;
+import android.provider.MediaStore;
 import android.provider.Settings;
 import android.support.v4.app.NotificationManagerCompat;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
+
+import com.inklin.qqnotfandshare.utils.PreferencesUtils;
 
 import java.net.URISyntaxException;
 import java.util.Set;
@@ -60,6 +64,8 @@ public class PreferencesActivity extends Activity {
                 requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_STORAGE_CODE);
             if("version_code".equals(preference.getKey()))
                 ((PreferencesActivity)getActivity()).showInfo();
+            if("icon_path".equals(preference.getKey()))
+                ((PreferencesActivity)getActivity()).getIcon();
             return false;
         }
 
@@ -143,19 +149,13 @@ public class PreferencesActivity extends Activity {
             return true;
         }
 
-        /**
-         * 判断当前应用是否是debug状态
-         */
-        public static boolean isApkInDebug(Context context) {
-            try {
-                ApplicationInfo info = context.getApplicationInfo();
-                return (info.flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
-            } catch (Exception e) {
-                return false;
-            }
-        }
-
         public void refreshSummary(){
+            ListPreference listPref = (ListPreference) findPreference("icon_mode");
+            listPref.setSummary(listPref.getEntry());
+
+            Preference dirPref = (Preference) findPreference("icon_path");
+            dirPref.setEnabled(Integer.parseInt(listPref.getValue())==2);
+            dirPref.setSummary(PreferencesUtils.getIconPath(getActivity()));
 
             Preference notfPref = (Preference) findPreference("notf_permit");
             notfPref.setSummary(getString(isNotificationListenerEnabled(getActivity())? R.string.pref_enable_permit : R.string.pref_disable_permit));
@@ -169,17 +169,8 @@ public class PreferencesActivity extends Activity {
             EditTextPreference numberPref = (EditTextPreference) findPreference("max_single_msg");
             numberPref.setSummary(numberPref.getText());
 
-            String versionName="";
-            int versionCode=0;
-            try {
-                PackageInfo pi=getActivity().getPackageManager().getPackageInfo(getActivity().getPackageName(), 0);
-                versionName = pi.versionName;
-                versionCode = pi.versionCode;
-            } catch (PackageManager.NameNotFoundException e) {
-                e.printStackTrace();
-            }
             Preference aboutPref = (Preference) findPreference("version_code");
-            aboutPref.setSummary(versionName + "-" + (isApkInDebug(getActivity())? "debug":"release") + "(" + versionCode +")");
+            aboutPref.setSummary(PreferencesUtils.getVersion(getActivity()));
         }
 
         public void openNotificationListenSettings() {
@@ -195,6 +186,14 @@ public class PreferencesActivity extends Activity {
                 e.printStackTrace();
             }
         }
+    }
+
+    private static final int PHOTO_REQUEST_GALLERY = 2;
+    public void getIcon(){
+        Intent intent = new Intent(Intent.ACTION_PICK);
+        intent.setType("image/*");
+        // 开启一个带有返回值的Activity，请求码为PHOTO_REQUEST_GALLERY
+        startActivityForResult(intent, PHOTO_REQUEST_GALLERY);
     }
 
     public void showInfo(){
@@ -239,5 +238,29 @@ public class PreferencesActivity extends Activity {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == PHOTO_REQUEST_GALLERY) {
+            // 从相册返回的数据
+            if (data != null) {
+                // 得到图片的全路径
+                Uri uri = data.getData();
+                SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(this).edit();
+                editor.putString("icon_path", getRealPathFromURI(this, uri)).apply();
+            }
+        }
+    }
+
+    public String getRealPathFromURI(Context context, Uri contentUri) {
+        Cursor cursor = null;
+        try {
+            String[] proj = { MediaStore.Images.Media.DATA };
+            cursor = context.getContentResolver().query(contentUri,  proj, null, null, null);
+            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+            cursor.moveToFirst();
+            return cursor.getString(column_index);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
     }
 }

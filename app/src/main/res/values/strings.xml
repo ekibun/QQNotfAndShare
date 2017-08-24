@@ -14,6 +14,18 @@
     <string name="pref_cate_other">杂项</string>
     <string name="pref_cate_style">通知样式</string>
     <string name="pref_use_full_icon">实心QQ图标</string>
+    <string name="pref_icon_mode">图标样式</string>
+    <string-array name="pref_icon_mode">
+        <item>默认</item>
+        <item>实心QQ图标</item>
+        <item>自定义</item>
+    </string-array>
+    <string-array name="pref_icon_mode_value">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+    <string name="pref_icon_path">图标路径</string>
     <string name="pref_use_default_sound">系统提示音</string>
     <string name="pref_use_multi_line">多行显示单条消息</string>
     <string name="pref_max_single_msg">单条消息最大字数</string>
