@@ -9,7 +9,7 @@ public class SplashActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        this.finishAndRemoveTask();
+        this.finish();
         Intent intent = new Intent(this, PreferencesActivity.class);
         this.startActivity(intent);
     }

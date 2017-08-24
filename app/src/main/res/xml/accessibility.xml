@@ -4,6 +4,6 @@
     android:accessibilityFeedbackType="feedbackAllMask"
     android:canRetrieveWindowContent="false"
     android:notificationTimeout="100"
-    android:packageNames="com.tencent.mobileqq, com.tencent.tim"
+    android:packageNames="com.tencent.mobileqq, com.tencent.tim, com.tencent.qqlite"
     android:settingsActivity="com.inklin.qqnotfandshare.PreferencesActivity"
     android:description = "@string/acc_desc"/>

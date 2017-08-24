@@ -9,12 +9,14 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.preference.EditTextPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
@@ -141,6 +143,18 @@ public class PreferencesActivity extends Activity {
             return true;
         }
 
+        /**
+         * 判断当前应用是否是debug状态
+         */
+        public static boolean isApkInDebug(Context context) {
+            try {
+                ApplicationInfo info = context.getApplicationInfo();
+                return (info.flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
         public void refreshSummary(){
 
             Preference notfPref = (Preference) findPreference("notf_permit");
@@ -152,6 +166,9 @@ public class PreferencesActivity extends Activity {
             Preference acesPref = (Preference) findPreference("aces_permit");
             acesPref.setSummary(getString(isAccessibilitySettingsOn(getActivity())? R.string.pref_enable_permit : R.string.pref_disable_permit));
 
+            EditTextPreference numberPref = (EditTextPreference) findPreference("max_single_msg");
+            numberPref.setSummary(numberPref.getText());
+
             String versionName="";
             int versionCode=0;
             try {
@@ -162,7 +179,7 @@ public class PreferencesActivity extends Activity {
                 e.printStackTrace();
             }
             Preference aboutPref = (Preference) findPreference("version_code");
-            aboutPref.setSummary(versionName + "(" + versionCode +")");
+            aboutPref.setSummary(versionName + "-" + (isApkInDebug(getActivity())? "debug":"release") + "(" + versionCode +")");
         }
 
         public void openNotificationListenSettings() {

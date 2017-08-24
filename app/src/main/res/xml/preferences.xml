@@ -21,6 +21,18 @@
             <SwitchPreference
                 android:key="use_default_sound"
                 android:title="@string/pref_use_default_sound" />
+            <SwitchPreference
+                android:key="use_multi_line"
+                android:title="@string/pref_use_multi_line" />
+            <EditTextPreference
+                android:key="max_single_msg"
+                android:defaultValue="100"
+                android:dependency="use_multi_line"
+                android:inputType="number"
+                android:title="@string/pref_max_single_msg" />
+            <SwitchPreference
+                android:key="use_group"
+                android:title="@string/pref_use_group" />
         </PreferenceScreen>
         <SwitchPreference
             android:key="hide_share"

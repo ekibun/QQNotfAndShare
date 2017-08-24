@@ -38,9 +38,10 @@ public class AccessibilityMonitorService extends AccessibilityService {
                 Log.v("class", className);
                 if("com.tencent.mobileqq.activity.SplashActivity".equals(event.getClassName()) ||
                         "com.dataline.activities.LiteActivity".equals(event.getClassName())){
-                    ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).cancel(tag);
+                    startService(new Intent(this, NotificationMonitorService.class).putExtra("tag", tag)); //((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).cancel(tag);
                 }else if(className.startsWith("cooperation.qzone.")){
                     ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).cancel(tag + 1);
+                    startService(new Intent(this, NotificationMonitorService.class).putExtra("tag", NotificationMonitorService.id_qzone));//startService(new Intent(this, NotificationMonitorService.class).putExtra("resetCount", tag));
                 }
 
             }

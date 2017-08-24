@@ -2,11 +2,13 @@ package com.inklin.qqnotfandshare;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
+import android.app.Application;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -19,15 +21,283 @@ import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
+import android.util.ArrayMap;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class NotificationMonitorService extends NotificationListenerService {
-    static final int maxCount = 10;
+    public static final int id_qq = 1;
+    public static final int id_qqlite = 2;
+    public static final int id_tim = 3;
+    public static final int id_qzone = 4;
+    public static final int id_group0 = 5;
+
+    private static final int maxCount = 20;
+    // 在收到消息时触发
+    @Override
+    public void onNotificationPosted(StatusBarNotification sbn) {
+        int tag = getTagfromPackageName(sbn.getPackageName());
+        if(tag != 0)
+            notif(sbn, tag);
+    }
+
+    public int onStartCommand(Intent intent, int flags, int startId){
+        int tag = intent != null ?intent.getIntExtra("tag", 0) : 0;
+        if(tag > 0){
+            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            nm.cancel(tag);
+            if(tag != id_qzone){
+                for(StatusBarNotification sbn : getActiveNotifications()){
+                    if(!getPackageName().equals(sbn.getPackageName()) || sbn.getId() < id_group0)
+                        continue;
+                    nm.cancel(sbn.getId());
+                }
+            }
+        }
+        return super.onStartCommand(intent, flags, startId);
+    }
+
+    private void notif(StatusBarNotification sbn, int tag){
+        Notification notification = sbn.getNotification();
+        if (notification == null)
+            return;
+        //标题/内容
+        String notf_title = notification.extras.getString(Notification.EXTRA_TITLE);
+        String notf_text = notification.extras.getString(Notification.EXTRA_TEXT);
+        if(notf_text!= null && !notf_text.isEmpty())
+            notf_text = notf_text.replaceAll("\n", " ");
+        else
+            notf_text = "";
+        String notf_ticker = "";
+        if(notification.tickerText!= null){
+            notf_ticker = notification.tickerText.toString();
+            notf_ticker = notf_ticker.replaceAll("\n", " ");
+        }
+        //多人消息
+        boolean mul = !notf_text.contains(":") && !notf_ticker.endsWith(notf_text);
+        String title = mul? notf_text: notf_title;
+        if(title == null || notf_ticker.isEmpty() || title.equals(notf_ticker))
+            return;
+
+        //单独处理QQ空间
+        boolean isQzone = false;
+        int count = 1;
+        Matcher matcher = Pattern.compile("QQ空间动态\\(共(\\d+)条未读\\)$").matcher(title);
+        if (notf_ticker.equals(notf_text)){
+            if(matcher.find()){
+                isQzone = true;
+                count = Integer.parseInt(matcher.group(1));
+            }else if("QQ空间动态".equals(title)){
+                isQzone = true;
+                count = maxCount;
+            }
+        }
+        //消息数量
+        if(!isQzone){
+            matcher = Pattern.compile("(\\d+)\\S{1,3}新消息\\)?$").matcher(title);
+            if (matcher.find())
+                count = Integer.parseInt(matcher.group(1));
+        }
+        int maxMsgLength = getMaxMsgLength();
+        if(PreferenceManager.getDefaultSharedPreferences(this).getBoolean("use_group", false) ?
+                notif_group(count, tag, title, notf_ticker, notf_text, mul, isQzone, notification, maxMsgLength) :
+                notif_list(count, tag, title, notf_ticker, notf_text, mul, isQzone, notification, maxMsgLength)){
+            if(Build.VERSION.SDK_INT >= 23)
+                setNotificationsShown(new String[]{sbn.getKey()});
+            cancelNotification(sbn.getKey());
+        }
+    }
+
+    private boolean notif_group(int count, int tag, String title, String notf_ticker, String notf_text, boolean mul, boolean isQzone, Notification notification, int maxMsgLength){
+        if(isQzone)
+            return notif_list(count, tag, title, notf_ticker, notf_text, mul, isQzone, notification, maxMsgLength);
+        String name = null, text = null;
+        Matcher matcher = Pattern.compile("(.+)\\((.+)\\):(.+)").matcher(notf_ticker);
+        if(matcher.find()){
+            name = matcher.group(2);
+            text = matcher.group(1) + ":" + matcher.group(3);
+        }else{
+            matcher = Pattern.compile("(.+):(.+)").matcher(notf_ticker);
+            if(matcher.find()){
+                name = matcher.group(1);
+                text = matcher.group(2);
+            }
+        }
+        if(name == null || text == null)
+            return notif_list(count, tag, title, notf_ticker, notf_text, mul, isQzone, notification, maxMsgLength);
+        Notification.InboxStyle istyle = new Notification.InboxStyle();
+        Notification.BigTextStyle bstyle = new Notification.BigTextStyle();
+        istyle.setBigContentTitle(name);
+        istyle.addLine(text);
+        int id = 0;
+        int maxid = id_group0;
+        for(StatusBarNotification sbn : getActiveNotifications()){
+            if(!getPackageName().equals(sbn.getPackageName()) || sbn.getId() < id_group0)
+                continue;
+            if(!name.equals(sbn.getNotification().extras.getString(Notification.EXTRA_TITLE))){
+                maxid = Math.max(maxid,sbn.getId());
+                continue;
+            }
+            if(maxMsgLength > 0){
+                String btext = sbn.getNotification().extras.getString(Notification.EXTRA_BIG_TEXT);
+                if(btext == null || btext.isEmpty())
+                    continue;
+                text = text + "\n" + btext;
+            }else{
+                CharSequence[] omsg = sbn.getNotification().extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES);
+                if(omsg == null)
+                    continue;
+                id = sbn.getId();
+                for(CharSequence c: omsg){
+                    istyle.addLine(c);
+                }
+            }
+        }
+        bstyle.setBigContentTitle(name);
+        bstyle.bigText(text);
+        if(id == 0)
+            id = maxid + 1;
+        buildNotification(name, text, isQzone, tag, maxMsgLength > 0 ? bstyle : istyle, notification, false, true, id);
+        buildNotification(name, text, isQzone, tag, null, notification, true, true, id_group0);
+        return true;
+    }
+
+    private boolean notif_list(int count, int tag,String title, String notf_ticker, String notf_text, boolean mul, boolean isQzone, Notification notification, int maxMsgLength){
+        String msg = notf_ticker + "\n" + (mul ? notf_ticker :notf_text);
+        ArrayList<String> msgs = isQzone ? msgQzone : getMsgList(tag);
+        msgs.add(0, msg);
+        //删除多余消息
+        for(int i = count; i< msgs.size(); ){
+            msgs.remove(i);
+        }
+        String first = "";
+        Notification.InboxStyle istyle = new Notification.InboxStyle();
+        Notification.BigTextStyle bstyle = new Notification.BigTextStyle();
+        istyle.setBigContentTitle(title);
+        for (String s : msgs) {
+            count--;
+            String[] ss = s.split("\n");
+            String m = ss.length > 1 ? ss[mul ? 0 : 1] : s;
+            if(maxMsgLength > 0){
+                if (m.length() > maxMsgLength)
+                    m = m.substring(0, maxMsgLength) + "...";
+                if (first.isEmpty())
+                    first = m;
+                else
+                    first = first + "\n" + m;
+            }else{
+                istyle.addLine(m);
+                if (first.isEmpty())
+                    first = m;
+            }
+            if (count == 0)
+                break;
+        }
+        buildNotification(title, first, isQzone, tag, maxMsgLength > 0 ? bstyle : istyle, notification, false, false, isQzone ? id_qzone : tag);
+        return true;
+    }
+
+    private void buildNotification(String title, String text, boolean isQzone, int tag, Notification.Style style, Notification notification, boolean setGroupSummary, boolean group, int id){
+        Notification.Builder builder = new Notification.Builder(this)
+                .setSubText(getString(getStringId(tag)))
+                .setContentTitle(title)
+                .setContentText(text)
+                .setColor(ContextCompat.getColor(getApplicationContext(), isQzone ? R.color.colorQzone : R.color.colorPrimary))
+                .setSmallIcon(isQzone ? R.drawable.ic_qzone : getIcon(tag))
+                .setLargeIcon((Bitmap) notification.extras.get(Notification.EXTRA_LARGE_ICON))
+                .setStyle(style)
+                .setAutoCancel(true)
+                .setContentIntent(notification.contentIntent)
+                .setDeleteIntent(notification.deleteIntent)
+                .setPriority(notification.priority)
+                .setSound(notification.sound)
+                .setLights(notification.ledARGB, notification.ledOnMS, notification.ledOffMS)
+                .setVibrate(notification.vibrate)
+                .setShowWhen(true)
+                .setGroupSummary(setGroupSummary);
+        if(group)
+            builder.setGroup("GROUP");
+        if (PreferenceManager.getDefaultSharedPreferences(this).getBoolean("use_default_sound", false))
+            builder.setDefaults(Notification.DEFAULT_SOUND);
+        ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).notify(id, builder.build());
+    }
+
+    final ArrayList<String> msgQQ = new  ArrayList<String>();
+    final ArrayList<String> msgQQLite = new  ArrayList<String>();
+    final ArrayList<String> msgTim = new  ArrayList<String>();
+    final ArrayList<String> msgQzone = new  ArrayList<String>();
+    private ArrayList<String> getMsgList(int tag){
+        switch (tag){
+            case id_qq://R.string.qq:
+                return msgQQ;
+            case id_tim://R.string.tim:
+                return msgTim;
+            case id_qqlite://R.string.qqlite:
+                return msgQQLite;
+        }
+        return msgQQ;
+    }
+
+    private int getStringId(int tag){
+        switch (tag){
+            case id_qq://R.string.qq:
+                return R.string.qq;
+            case id_tim://R.string.tim:
+                return R.string.tim;
+            case id_qqlite://R.string.qqlite:
+                return R.string.qqlite;
+        }
+        return R.string.qq;
+    }
+
+    private int getIcon(int tag){
+        switch (tag){
+            case id_qq://R.string.qq:
+            case id_qqlite://R.string.qqlite:
+                return PreferenceManager.getDefaultSharedPreferences(this).
+                        getBoolean("use_full_icon", false) ? R.drawable.ic_qq_full : R.drawable.ic_qq;
+            case id_tim://R.string.tim:
+                return R.drawable.ic_tim;
+        }
+        return R.drawable.ic_qq;
+    }
+
+    public static int getTagfromPackageName(String packageName){
+        switch (packageName){
+            case "com.tencent.mobileqq":
+                return id_qq;//R.string.qq;
+            case "com.tencent.tim":
+                return id_tim;//R.string.tim;
+            case "com.tencent.qqlite":
+                return id_qqlite;//R.string.qqlite;
+        }
+        return 0;
+    }
+
+    private int getMaxMsgLength(){
+        if(!PreferenceManager.getDefaultSharedPreferences(this).
+                getBoolean("use_multi_line", false))
+            return 0;
+        return Integer.parseInt(PreferenceManager.getDefaultSharedPreferences(this).
+                getString("max_single_msg", "0"));
+    }
+}
+
+/*
+public class NotificationMonitorService extends NotificationListenerService {
+
+    private static final int id_qq = 1;
+    private static final int id_qqlite = 2;
+    private static final int id_tim = 3;
+    private static final int id_qzone = 4;
+    private static final int id_group0 = 5;
+
+    static final int maxCount = 20;
 
     public static void toggleNotificationListenerService(Context context) {
         PackageManager pm = context.getPackageManager();
@@ -49,35 +319,61 @@ public class NotificationMonitorService extends NotificationListenerService {
     public static int getTagfromPackageName(String packageName){
         switch (packageName){
             case "com.tencent.mobileqq":
-                return R.string.qq;
+                return id_qq;//R.string.qq;
             case "com.tencent.tim":
-                return R.string.tim;
+                return id_tim;//R.string.tim;
+            case "com.tencent.qqlite":
+                return id_qqlite;//R.string.qqlite;
         }
         return 0;
     }
 
     private int getIcon(int tag){
         switch (tag){
-            case R.string.qq:
+            case id_qq://R.string.qq:
+            case id_qqlite://R.string.qqlite:
                 return PreferenceManager.getDefaultSharedPreferences(this).
                         getBoolean("use_full_icon", false) ? R.drawable.ic_qq_full : R.drawable.ic_qq;
-            case R.string.tim:
+            case id_tim://R.string.tim:
                 return R.drawable.ic_tim;
         }
         return R.drawable.ic_qq;
     }
 
+    private int getMaxMsgLength(){
+        if(!PreferenceManager.getDefaultSharedPreferences(this).
+                getBoolean("use_multi_line", false))
+            return 0;
+        return Integer.parseInt(PreferenceManager.getDefaultSharedPreferences(this).
+                getString("max_single_msg", "0"));
+    }
+
     final ArrayList<String> msgQQ = new  ArrayList<String>();
+    final ArrayList<String> msgQQLite = new  ArrayList<String>();
     final ArrayList<String> msgTim = new  ArrayList<String>();
     final ArrayList<String> msgQzone = new  ArrayList<String>();
     private ArrayList<String> getMsgList(int tag){
         switch (tag){
-            case R.string.qq:
+            case id_qq://R.string.qq:
                 return msgQQ;
-            case R.string.tim:
+            case id_tim://R.string.tim:
                 return msgTim;
+            case id_qqlite://R.string.qqlite:
+                return msgQQLite;
         }
         return msgQQ;
+    }
+
+    private int getStringId(int tag){
+        switch (tag){
+            case id_qq://R.string.qq:
+                return R.string.qq;
+            case id_tim://R.string.tim:
+                return R.string.tim;
+            case id_qqlite://R.string.qqlite:
+                return R.string.qqlite;
+        }
+        return R.string.qq;
     }
 
     private void notif(StatusBarNotification sbn, int tag){
@@ -89,12 +385,16 @@ public class NotificationMonitorService extends NotificationListenerService {
         String notf_text = notification.extras.getString(Notification.EXTRA_TEXT);
         if(notf_text!= null && !notf_text.isEmpty())
             notf_text = notf_text.replaceAll("\n", " ");
+        else
+            notf_text = "";
         String notf_ticker = "";
         if(notification.tickerText!= null){
             notf_ticker = notification.tickerText.toString();
             notf_ticker = notf_ticker.replaceAll("\n", " ");
         }
-        boolean mul = getString(tag).equals(notf_title);
+
+        boolean mul = !notf_text.contains(":") && !notf_ticker.endsWith(notf_text);
+        //boolean mul = !notf_ticker.endsWith(notf_text); //getString(tag).equals(notf_title);
         String title = mul? notf_text: notf_title; ///notification.extras.getString(Notification.EXTRA_TITLE);
         //title = getString(tag).equals(title)? notification.extras.getString(Notification.EXTRA_TEXT):title;
         //非消息
@@ -106,13 +406,18 @@ public class NotificationMonitorService extends NotificationListenerService {
         boolean isQzone = false;
         int count = 1;
         Matcher matcher = Pattern.compile("QQ空间动态\\(共(\\d+)条未读\\)$").matcher(title);
-        if (matcher.find() && notf_ticker.equals(notf_text)){
-            isQzone = true;
-            count = Integer.parseInt(matcher.group(1));
+        if (notf_ticker.equals(notf_text)){
+            if(matcher.find()){
+                isQzone = true;
+                count = Integer.parseInt(matcher.group(1));
+            }else if("QQ空间动态".equals(title)){
+                return;//不拦截
+            }
         }
 
         ArrayList<String> msgs = isQzone ? msgQzone : getMsgList(tag);
         msgs.add(0, msg);
+
         //消息数量
         if(!isQzone){
             matcher = Pattern.compile("(\\d+)\\S{1,3}新消息\\)?$").matcher(title);
@@ -120,26 +425,63 @@ public class NotificationMonitorService extends NotificationListenerService {
                 count = Integer.parseInt(matcher.group(1));
         }
         //删除多余消息
-        for(int i = Math.max(0, Math.min(count, maxCount)); i< msgs.size(); ){
+        for(int i = count; i< msgs.size(); ){
             msgs.remove(i);
         }
-        Notification.InboxStyle style = new Notification.InboxStyle();
-        style.setBigContentTitle(title);
+        //count = Math.min(count, msgs.size());
+
+        if(!isQzone)
+            notf_group(msg, tag, notification);
+        else {
+            notf_list(msgs, mul, isQzone, title, tag, count, notification);
+        }
+
+        if(Build.VERSION.SDK_INT >= 23)
+            setNotificationsShown(new String[]{sbn.getKey()});
+        cancelNotification(sbn.getKey());
+    }
+
+    private void notf_list(ArrayList<String> msgs, boolean mul, boolean isQzone, String title, int tag, int count, Notification notification){
+        Notification.Style style;
+        int maxMsgLength = getMaxMsgLength();
         String first = "";
-        for(String s: msgs) {
-            String[] ss = s.split("\n");
-            String m = ss.length > 1 ? ss[mul ? 0: 1] : s;
-            style.addLine(m);
-            if(first.isEmpty())
-                first = m;
+        if (maxMsgLength <= 0) {
+            Notification.InboxStyle istyle = new Notification.InboxStyle();
+            istyle.setBigContentTitle(title);
+            for (String s : msgs) {
+                count--;
+                String[] ss = s.split("\n");
+                String m = ss.length > 1 ? ss[mul ? 0 : 1] : s;
+                istyle.addLine(m);
+                if (first.isEmpty())
+                    first = m;
+                if (count == 0)
+                    break;
+            }
+            style = istyle;
+        } else {
+            Notification.BigTextStyle bstyle = new Notification.BigTextStyle();
+            for (String s : msgs) {
+                count--;
+                String[] ss = s.split("\n");
+                String m = ss.length > 1 ? ss[mul ? 0 : 1] : s;
+                if (m.length() > maxMsgLength)
+                    m = m.substring(0, maxMsgLength) + "...";
+                first = first + m;
+                if (count == 0)
+                    break;
+                else
+                    first = first + "\n";
+            }
+            style = bstyle;
         }
         Notification.Builder builder = new Notification.Builder(this)
-                .setSubText(getString(tag))
+                .setSubText(getString(getStringId(tag)))
                 .setContentTitle(title)
                 .setContentText(first)
-                .setColor(ContextCompat.getColor(getApplicationContext(), isQzone? R.color.colorQzone : R.color.colorPrimary))
-                .setSmallIcon(isQzone? R.drawable.ic_qzone : getIcon(tag))
-                .setLargeIcon((Bitmap)notification.extras.get(Notification.EXTRA_LARGE_ICON))
+                .setColor(ContextCompat.getColor(getApplicationContext(), isQzone ? R.color.colorQzone : R.color.colorPrimary))
+                .setSmallIcon(isQzone ? R.drawable.ic_qzone : getIcon(tag))
+                .setLargeIcon((Bitmap) notification.extras.get(Notification.EXTRA_LARGE_ICON))
                 .setStyle(style)
                 .setAutoCancel(true)
                 .setContentIntent(notification.contentIntent)
@@ -148,27 +490,91 @@ public class NotificationMonitorService extends NotificationListenerService {
                 .setSound(notification.sound)
                 .setLights(notification.ledARGB, notification.ledOnMS, notification.ledOffMS)
                 .setVibrate(notification.vibrate);
-        if(PreferenceManager.getDefaultSharedPreferences(this).getBoolean("use_default_sound", false))
+        if (PreferenceManager.getDefaultSharedPreferences(this).getBoolean("use_default_sound", false))
             builder.setDefaults(Notification.DEFAULT_SOUND);
-        ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).notify(tag + (isQzone? 1 : 0), builder.build());
-        if(Build.VERSION.SDK_INT >= 23)
-            setNotificationsShown(new String[]{sbn.getKey()});
-        cancelNotification(sbn.getKey());
+        ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).notify(isQzone ? id_qzone : tag, builder.build());
     }
-/*
-    private int getNotifCount(String title){
-        int count = 1;
-        Matcher matcher = Pattern.compile("(\\d+)\\S{1,3}新消息\\)?$").matcher(title);
-        if (matcher.find()) {
-            String s = matcher.group(1);
-            count = Integer.parseInt(s);
+
+    private void notf_group(String msg, int tag, Notification notification){
+        //String msg = msgs.get(0);
+        String name = null, text = null;
+        Matcher matcher = Pattern.compile("(.+)\\((.+)\\):(.+)").matcher(msg);
+        if(matcher.find()){
+            name = matcher.group(2);
+            text = matcher.group(1) + ":" + matcher.group(3);
+        }else{
+            matcher = Pattern.compile("(.+):(.+)").matcher(msg);
+            if(matcher.find()){
+                name = matcher.group(1);
+                text = matcher.group(2);
+            }
         }
-        return count;
+        if(name == null || text == null)
+            return;
+        NotificationCompat.InboxStyle style = new NotificationCompat.InboxStyle();
+        style.setBigContentTitle(name);
+        style.addLine(text);
+        //ArrayList<String> strings = new ArrayList<>();
+        //strings.add(text);
+        int id = 0;
+        int maxid = id_group0;
+        boolean hasGroup = false;
+        for(StatusBarNotification sbn : getActiveNotifications()){
+            if(!getPackageName().equals(sbn.getPackageName()) || sbn.getId() < id_group0)
+                continue;
+            if( sbn.getId() == id_group0)
+                hasGroup = true;
+            if(!name.equals(sbn.getNotification().extras.getString(Notification.EXTRA_TITLE))){
+                maxid = Math.max(maxid,sbn.getId());
+                continue;
+            }
+            CharSequence[] omsg = sbn.getNotification().extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES);
+            if(omsg == null)
+                continue;
+            id = sbn.getId();
+            for(CharSequence c: omsg)
+                style.addLine(c);//strings.add(c.toString());
+        }
+        if(id == 0)
+            id = maxid + 1;
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
+                //.setSubText(getString(getStringId(tag)))
+                .setContentTitle(name)
+                .setContentText(text)
+                .setColor(ContextCompat.getColor(getApplicationContext(), R.color.colorPrimary))
+                .setSmallIcon(getIcon(tag))
+                .setLargeIcon((Bitmap) notification.extras.get(Notification.EXTRA_LARGE_ICON))
+                .setStyle(style)
+                .setAutoCancel(true)
+                .setContentIntent(notification.contentIntent)
+                .setDeleteIntent(notification.deleteIntent)
+                .setPriority(notification.priority)
+                .setSound(notification.sound)
+                .setLights(notification.ledARGB, notification.ledOnMS, notification.ledOffMS)
+                .setVibrate(notification.vibrate)
+                .setGroup("QQNotifAndShare");
+        if (PreferenceManager.getDefaultSharedPreferences(this).getBoolean("use_default_sound", false))
+            builder.setDefaults(Notification.DEFAULT_SOUND);
+        ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).notify(id, builder.build());
+
+        if(Math.max(id, maxid) > id_group0 + 1){//超过一个通知
+            NotificationCompat.Builder groupBuilder = new NotificationCompat.Builder(this)
+                    .setSubText(getString(getStringId(tag)))
+                    //.setContentTitle(name)
+                    //.setContentText(text)
+                    .setColor(ContextCompat.getColor(getApplicationContext(), R.color.colorPrimary))
+                    .setSmallIcon(getIcon(tag))
+                    .setGroupSummary(true)
+                    .setGroup("QQNotifAndShare");
+            ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).notify(id_group0, groupBuilder.build());
+        }
+
     }
-*/
+
     // 在删除消息时触发
     @Override
     public void onNotificationRemoved(StatusBarNotification sbn) {
 
     }
 }
+*/
