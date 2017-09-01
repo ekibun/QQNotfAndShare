@@ -5,6 +5,7 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ComponentName;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -13,6 +14,7 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -32,8 +34,10 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
+import com.inklin.qqnotfandshare.utils.FileUtils;
 import com.inklin.qqnotfandshare.utils.PreferencesUtils;
 
+import java.io.File;
 import java.net.URISyntaxException;
 import java.util.Set;
 
@@ -66,6 +70,8 @@ public class PreferencesActivity extends Activity {
                 ((PreferencesActivity)getActivity()).showInfo();
             if("icon_path".equals(preference.getKey()))
                 ((PreferencesActivity)getActivity()).getIcon();
+            if("ringtone".equals(preference.getKey()))
+                ((PreferencesActivity)getActivity()).getRingtone();
             return false;
         }
 
@@ -157,11 +163,16 @@ public class PreferencesActivity extends Activity {
             dirPref.setEnabled(Integer.parseInt(listPref.getValue())==2);
             dirPref.setSummary(PreferencesUtils.getIconPath(getActivity()));
 
+            Preference ringPref = (Preference) findPreference("ringtone");
+            Uri uri = PreferencesUtils.getRingtone(getActivity());
+            String sum = uri == null? "无" : RingtoneManager.getRingtone(getActivity(), uri).getTitle(getActivity());
+            ringPref.setSummary(sum);
+
             Preference notfPref = (Preference) findPreference("notf_permit");
             notfPref.setSummary(getString(isNotificationListenerEnabled(getActivity())? R.string.pref_enable_permit : R.string.pref_disable_permit));
 
-            Preference savePref = (Preference) findPreference("save_permit");
-            savePref.setSummary(getString(isStorageEnable()? R.string.pref_enable_permit : R.string.pref_disable_permit));
+            //Preference savePref = (Preference) findPreference("save_permit");
+            //savePref.setSummary(getString(isStorageEnable()? R.string.pref_enable_permit : R.string.pref_disable_permit));
 
             Preference acesPref = (Preference) findPreference("aces_permit");
             acesPref.setSummary(getString(isAccessibilitySettingsOn(getActivity())? R.string.pref_enable_permit : R.string.pref_disable_permit));
@@ -192,8 +203,15 @@ public class PreferencesActivity extends Activity {
     public void getIcon(){
         Intent intent = new Intent(Intent.ACTION_PICK);
         intent.setType("image/*");
-        // 开启一个带有返回值的Activity，请求码为PHOTO_REQUEST_GALLERY
         startActivityForResult(intent, PHOTO_REQUEST_GALLERY);
+    }
+
+    private static final int RINGTONE_REQUEST = 3;
+    public void getRingtone(){
+        Intent intent = new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
+        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION);
+        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, PreferencesUtils.getRingtone(this));
+        startActivityForResult(intent, RINGTONE_REQUEST);
     }
 
     public void showInfo(){
@@ -243,12 +261,18 @@ public class PreferencesActivity extends Activity {
             if (data != null) {
                 // 得到图片的全路径
                 Uri uri = data.getData();
+                File file = FileUtils.saveUriToCache(this, uri, "icon", true);
                 SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(this).edit();
-                editor.putString("icon_path", getRealPathFromURI(this, uri)).apply();
+                editor.putString("icon_path", file.getAbsolutePath()).apply();
             }
         }
+        if(requestCode == RINGTONE_REQUEST && resultCode == Activity.RESULT_OK){
+            Uri pickedUri = data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
+            SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(this).edit();
+            editor.putString("ringtone", pickedUri == null ? "" : pickedUri.toString()).apply();
+        }
     }
-
+/*
     public String getRealPathFromURI(Context context, Uri contentUri) {
         Cursor cursor = null;
         try {
@@ -263,4 +287,5 @@ public class PreferencesActivity extends Activity {
             }
         }
     }
+    */
 }

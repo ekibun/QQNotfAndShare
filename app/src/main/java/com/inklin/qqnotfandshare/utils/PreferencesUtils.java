@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Environment;
 import android.preference.Preference;
 import android.preference.PreferenceManager;
@@ -18,6 +19,12 @@ public class PreferencesUtils {
     public static String getIconPath(Context context){
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
         return sp.getString("icon_path", "");
+    }
+
+    public static Uri getRingtone(Context context){
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
+        String suri = sp.getString("ringtone", "");
+        return suri.isEmpty()? null : Uri.parse(suri);
     }
 
     public static String getVersion(Context context){

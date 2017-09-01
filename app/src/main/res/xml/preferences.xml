@@ -8,9 +8,9 @@
             <Preference
                 android:key="aces_permit"
                 android:title="@string/pref_aces_permit" />
-            <Preference
+            <!--<Preference
                 android:key="save_permit"
-                android:title="@string/pref_save_permit" />
+                android:title="@string/pref_save_permit" />-->
         </PreferenceScreen>
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/pref_cate_other">
@@ -24,9 +24,13 @@
             <Preference
                 android:key="icon_path"
                 android:title="@string/pref_icon_path" />
+            <!--
             <SwitchPreference
                 android:key="use_default_sound"
-                android:title="@string/pref_use_default_sound" />
+                android:title="@string/pref_use_default_sound" />-->
+            <Preference
+                android:key="ringtone"
+                android:title="@string/pref_ringtone" />
             <SwitchPreference
                 android:key="use_multi_line"
                 android:title="@string/pref_use_multi_line" />
@@ -39,6 +43,12 @@
             <SwitchPreference
                 android:key="use_group"
                 android:title="@string/pref_use_group" />
+            <!--
+            <SwitchPreference
+                android:key="use_notif_group"
+                android:defaultValue="true"
+                android:dependency="use_group"
+                android:title="@string/pref_use_notif_group" />-->
         </PreferenceScreen>
         <SwitchPreference
             android:key="hide_share"

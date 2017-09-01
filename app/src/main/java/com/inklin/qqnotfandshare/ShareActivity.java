@@ -11,18 +11,22 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
+import android.os.Parcelable;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 
+import com.inklin.qqnotfandshare.utils.FileUtils;
 import com.tencent.connect.share.QQShare;
 import com.tencent.tauth.IUiListener;
 import com.tencent.tauth.Tencent;
@@ -41,8 +45,15 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static android.support.v4.content.FileProvider.getUriForFile;
 
 public class ShareActivity extends Activity {
     @Override
@@ -80,18 +91,52 @@ public class ShareActivity extends Activity {
                 }
             }
             if(type.startsWith("image/")){
+                Log.v("uri",((Uri)intent.getParcelableExtra(Intent.EXTRA_STREAM)).toString());
                 Uri uri = fixUri((Uri)intent.getParcelableExtra(Intent.EXTRA_STREAM), type);
                 intent.putExtra(Intent.EXTRA_STREAM, uri);
             }
         }
+
+        //TODO
+        //startActivity(generateCustomChooserIntent(intent));
+
         if(isAppInstalled(this, "com.tencent.mobileqq")){
             intent.setClassName("com.tencent.mobileqq","com.tencent.mobileqq.activity.JumpActivity");
             startActivity(intent);
         } else if(isAppInstalled(this, "com.tencent.tim")){
             intent.setClassName("com.tencent.tim","com.tencent.mobileqq.activity.JumpActivity");
             startActivity(intent);
+        } else if(isAppInstalled(this, "com.tencent.qqlite")){
+            intent.setClassName("com.tencent.qqlite","com.tencent.mobileqq.activity.JumpActivity");
+            startActivity(intent);
+        }
+    }
+
+    private Intent generateCustomChooserIntent(Intent prototype) {
+        List<Intent> targetedShareIntents = new ArrayList<Intent>();
+        List<HashMap<String, String>> intentMetaInfo = new ArrayList<HashMap<String, String>>();
+        Intent chooserIntent;
+
+        Intent dummy = new Intent(prototype.getAction());
+        dummy.setType(prototype.getType());
+        List<ResolveInfo> resInfo = getPackageManager().queryIntentActivities(dummy, 0);
+
+        if (!resInfo.isEmpty()) {
+            for (ResolveInfo resolveInfo : resInfo) {
+                if (resolveInfo.activityInfo == null || !TextUtils.equals("com.tencent.mobileqq.activity.JumpActivity", resolveInfo.activityInfo.name))
+                    continue;
+
+                Intent targetedShareIntent = (Intent)prototype.clone();
+                //targetedShareIntent.setPackage(resolveInfo.activityInfo.packageName);
+                targetedShareIntent.setClassName(resolveInfo.activityInfo.packageName, resolveInfo.activityInfo.name);
+                targetedShareIntents.add(targetedShareIntent);
+            }
+            chooserIntent = Intent.createChooser(targetedShareIntents.remove(targetedShareIntents.size() - 1), getString(R.string.activity_share));
+            chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, targetedShareIntents.toArray(new Parcelable[]{}));
+            return chooserIntent;
         }
 
+        return Intent.createChooser(prototype, getString(R.string.activity_share));
     }
 
     public static String get(String url) {
@@ -165,7 +210,7 @@ public class ShareActivity extends Activity {
         params.putInt(QQShare.SHARE_TO_QQ_KEY_TYPE, QQShare.SHARE_TO_QQ_TYPE_DEFAULT);
         params.putString(QQShare.SHARE_TO_QQ_TITLE, title);// 标题
         params.putString(QQShare.SHARE_TO_QQ_TARGET_URL, url);// 内容地址
-        //params.putString(QQShare.SHARE_TO_QQ_APP_NAME, "应用");// 应用名称
+        params.putString(QQShare.SHARE_TO_QQ_APP_NAME, "应用");// 应用名称
         mTencent.shareToQQ(this, params, null);
         this.finish();
     }
@@ -223,6 +268,12 @@ public class ShareActivity extends Activity {
     }
 
     private Uri fixUri(Uri uri, String type){
+        if(DocumentsContract.isDocumentUri(this, uri))
+            return uri;
+        File file = FileUtils.saveUriToCache(this, uri, "share", true);
+        if (file.exists())
+            uri = Uri.parse(buildDocumentUri(file));
+        /*
         File file = new File(uri.getPath());
         if(!file.exists()){
             try {
@@ -249,6 +300,8 @@ public class ShareActivity extends Activity {
                 e.printStackTrace();
             }
             if (file.exists()) {
+                uri = Uri.parse(buildDocumentUri(file));
+                /*
                 ContentValues values = new ContentValues();
                 values.put(MediaStore.Images.ImageColumns.DATA, file.getAbsolutePath());
                 values.put(MediaStore.Images.ImageColumns.TITLE, file.getName());
@@ -256,9 +309,18 @@ public class ShareActivity extends Activity {
                 values.put(MediaStore.Images.ImageColumns.MIME_TYPE, type);
                 values.put(MediaStore.Images.ImageColumns.SIZE, file.length());
                 uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+
             }
         }
+        */
         return uri;
+    }
+
+    private static String buildDocumentUri(File file){
+        StringBuilder sb=new StringBuilder("content://com.android.externalstorage.documents/document/primary%3A");
+        sb.append(file.getPath().replace("/storage/emulated/0/", "").replace("/", "%2F"));
+        Log.v("string", sb.toString());
+        return sb.toString();
     }
 
     @Override
