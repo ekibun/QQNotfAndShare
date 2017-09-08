@@ -223,7 +223,7 @@ public class PreferencesActivity extends Activity {
             public void onClick(DialogInterface dialog, int which) {
                 Intent intent = new Intent();
                 intent.setAction(Intent.ACTION_VIEW);
-                Uri content_url = Uri.parse("https://github.com/acaoairy/QQNotfAndShare");
+                Uri content_url = Uri.parse("https://github.com/acaoairy/OpenInWechat");
                 intent.setData(content_url);
                 startActivity(Intent.createChooser(intent, null));
             }
