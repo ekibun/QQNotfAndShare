@@ -1,34 +1,24 @@
 package com.inklin.qqnotfandshare;
 
-import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
-import android.app.Application;
+
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
 import android.os.Build;
-import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.content.ContextCompat;
-import android.util.ArrayMap;
-import android.util.Log;
 
 import com.inklin.qqnotfandshare.utils.FileUtils;
 import com.inklin.qqnotfandshare.utils.PreferencesUtils;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -68,6 +58,13 @@ public class NotificationMonitorService extends NotificationListenerService {
                 }
             }else if(intent.hasExtra("notfClick")){
                 if(lastIntent != null){
+                    notifs.clear();
+                    NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                    for(StatusBarNotification sbn : getActiveNotifications()){
+                        if(!getPackageName().equals(sbn.getPackageName()) || sbn.getId() < id_group0)
+                            continue;
+                        nm.cancel(sbn.getId());
+                    }
                     try {
                         lastIntent.send();
                     } catch (PendingIntent.CanceledException e) {
@@ -130,15 +127,22 @@ public class NotificationMonitorService extends NotificationListenerService {
         }
     }
 
-    final ArrayList<Notification> notifs = new ArrayList<>();
+    private class NotifInfo{
+        String name;
+        List<String> msgs = new ArrayList<>();
+    }
+
+    final ArrayList<NotifInfo> notifs = new ArrayList<>();
     private boolean notif_group(int count, int tag, String title, String notf_ticker, String notf_text, boolean mul, boolean isQzone, Notification notification, int maxMsgLength){
         if(isQzone)
             return notif_list(count, tag, title, notf_ticker, notf_text, mul, isQzone, notification, maxMsgLength);
         String name = null, text = null;
-        Matcher matcher = Pattern.compile("(.+)\\((.+)\\):(.+)").matcher(notf_ticker);
+        boolean isGroupMsg = false;
+        Matcher matcher = Pattern.compile("(.*)\\((.+)\\):(.+)").matcher(notf_ticker);
         if(matcher.find()){
             name = matcher.group(2);
             text = matcher.group(1) + ":" + matcher.group(3);
+            isGroupMsg = true;
         }else{
             matcher = Pattern.compile("(.+):(.+)").matcher(notf_ticker);
             if(matcher.find()){
@@ -148,11 +152,53 @@ public class NotificationMonitorService extends NotificationListenerService {
         }
         if(name == null || text == null)
             return notif_list(count, tag, title, notf_ticker, notf_text, mul, isQzone, notification, maxMsgLength);
-        Notification.InboxStyle istyle = new Notification.InboxStyle();
-        Notification.BigTextStyle bstyle = new Notification.BigTextStyle();
-        istyle.setBigContentTitle(name);
-        istyle.addLine(text);
+
+        NotifInfo newInfo = new NotifInfo();
+        newInfo.name = name;
+        newInfo.msgs.add(text);
         int id = -1;
+        for(int i = 0; i< notifs.size(); i++){
+            NotifInfo notif = notifs.get(i);
+            if(name.equals(notif.name)){
+                id = i;
+                newInfo.msgs.addAll(notif.msgs);
+                break;
+            }
+        }
+        if(id < 0)
+            id = notifs.size();
+        if(id >= notifs.size())
+            notifs.add(newInfo);
+        else
+            notifs.set(id, newInfo);
+
+        Notification.Style style;
+        if(maxMsgLength > 0){
+            Notification.BigTextStyle bstyle = new Notification.BigTextStyle();
+            bstyle.setBigContentTitle(name);
+            for(int m = 1; m < newInfo.msgs.size() && m < maxCount; m++){
+                String msg = newInfo.msgs.get(m);
+                if(msg.length() > maxMsgLength)
+                    msg = msg.substring(0, maxMsgLength);
+                text = text + "\n" + msg;
+            }
+            bstyle.bigText(text);
+            style = bstyle;
+        }else{
+            Notification.InboxStyle istyle = new Notification.InboxStyle();
+            istyle.setBigContentTitle(name);
+            for(int m = 0; m < newInfo.msgs.size() && m < maxCount; m++){
+                String msg = newInfo.msgs.get(m);
+                istyle.addLine(msg);
+            }
+            style = istyle;
+        }
+
+        buildNotification(name, text, isQzone, mul, tag, style, notification, false, true, id  + 1 + id_group0, isGroupMsg);
+
+        if(Build.VERSION.SDK_INT >= 24)//Nougat
+            buildNotification(name, text, isQzone, mul, tag, null, notification, true, true, id_group0, false);
+        /*
         for(int i = 0; i< notifs.size(); i++){
             Notification notif = notifs.get(i);
             if(name.equals(notif.extras.getString(Notification.EXTRA_TITLE))){
@@ -189,8 +235,8 @@ public class NotificationMonitorService extends NotificationListenerService {
             notifs.add(notif);
         else
             notifs.set(id, notif);
-        if(Build.VERSION.SDK_INT >= 25)//Nougat
-            buildNotification(name, text, isQzone, mul, tag, null, notification, true, true, id_group0);
+        if(Build.VERSION.SDK_INT >= 24)//Nougat
+            buildNotification(name, text, isQzone, mul, tag, null, notification, true, true, id_group0);*/
         return true;
     }
 
@@ -225,24 +271,27 @@ public class NotificationMonitorService extends NotificationListenerService {
             if (count == 0)
                 break;
         }
-        buildNotification(title, first, isQzone, mul, tag, maxMsgLength > 0 ? bstyle : istyle, notification, false, false, isQzone ? id_qzone : tag);
+        buildNotification(title, first, isQzone, mul, tag, maxMsgLength > 0 ? bstyle : istyle, notification, false, false, isQzone ? id_qzone : tag, false);
         return true;
     }
 
     PendingIntent lastIntent;
-    private Notification buildNotification(String title, String text, boolean isQzone, boolean mul, int tag, Notification.Style style, Notification notification, boolean setGroupSummary, boolean group, int id){
+    private Notification buildNotification(String title, String text, boolean isQzone, boolean mul, int tag, Notification.Style style, Notification notification, boolean setGroupSummary, boolean group, int id, boolean isGroupMsg){
+        boolean noFloat = PreferenceManager.getDefaultSharedPreferences(this).getBoolean("disable_float", false);
+        noFloat |= isGroupMsg && PreferenceManager.getDefaultSharedPreferences(this).getBoolean("ignore_group_float", false);
         Notification.Builder builder = new Notification.Builder(this)
                 //.setSubText(getString(getStringId(tag)))
                 .setContentTitle(title)
                 .setContentText(text)
-                .setColor(ContextCompat.getColor(getApplicationContext(), isQzone ? R.color.colorQzone : R.color.colorPrimary))
+                .setColor( getResources().getColor(isQzone ? R.color.colorQzone : R.color.colorPrimary))
                 //.setSmallIcon(isQzone ? R.drawable.ic_qzone : getIcon(tag))
                 //.setLargeIcon((Bitmap) notification.extras.get(Notification.EXTRA_LARGE_ICON))
                 .setStyle(style)
                 .setAutoCancel(true)
                 .setContentIntent(notification.contentIntent)
                 .setDeleteIntent(notification.deleteIntent)
-                .setPriority(setGroupSummary ? Notification.PRIORITY_MIN : notification.priority)
+                .setPriority(setGroupSummary ? Notification.PRIORITY_MIN : noFloat && notification.priority > Notification.PRIORITY_DEFAULT ?
+                        Notification.PRIORITY_DEFAULT : notification.priority)
                 //.setSound(notification.sound)
                 .setLights(notification.ledARGB, notification.ledOnMS, notification.ledOffMS)
                 .setVibrate(notification.vibrate)
@@ -269,7 +318,8 @@ public class NotificationMonitorService extends NotificationListenerService {
 
         if(group)
             builder.setGroup("GROUP");
-        if(!setGroupSummary)
+        boolean sound = !isGroupMsg || !PreferenceManager.getDefaultSharedPreferences(this).getBoolean("ignore_group", false);
+        if(!setGroupSummary && sound)
             builder.setSound(PreferencesUtils.getRingtone(this));
         /*
         if (PreferenceManager.getDefaultSharedPreferences(this).getBoolean("use_default_sound", false))

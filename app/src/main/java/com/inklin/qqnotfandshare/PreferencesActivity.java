@@ -4,6 +4,7 @@ import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.NotificationManager;
 import android.content.ComponentName;
 import android.content.ContentUris;
 import android.content.Context;
@@ -28,7 +29,6 @@ import android.preference.PreferenceScreen;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.provider.Settings;
-import android.support.v4.app.NotificationManagerCompat;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -113,12 +113,19 @@ public class PreferencesActivity extends Activity {
             getPreferenceManager().getSharedPreferences().unregisterOnSharedPreferenceChangeListener(this);
             super.onPause();
         }
-
+/*
         public boolean isNotificationListenerEnabled(Context context) {
-            Set<String> packageNames = NotificationManagerCompat.getEnabledListenerPackages(context);
+            Set<String> packageNames = NotificationManager.getEnabledListenerPackages(context);
             if (packageNames.contains(context.getPackageName())) {
                 return true;
             }
+            return false;
+        }
+      */
+        public static boolean isNotificationListenerEnabled(Context context){
+            String s = android.provider.Settings.Secure.getString(context.getContentResolver(), "enabled_notification_listeners");
+            if(s!= null && s.contains(context.getPackageName()))
+                return true;
             return false;
         }
 
