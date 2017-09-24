@@ -52,12 +52,11 @@
             <SwitchPreference
                 android:key="use_group"
                 android:title="@string/pref_use_group" />
-            <!--
             <SwitchPreference
                 android:key="use_notif_group"
                 android:defaultValue="true"
                 android:dependency="use_group"
-                android:title="@string/pref_use_notif_group" />-->
+                android:title="@string/pref_use_notif_group" />
         </PreferenceScreen>
         <SwitchPreference
             android:key="hide_share"

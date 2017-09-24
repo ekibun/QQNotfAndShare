@@ -196,7 +196,7 @@ public class NotificationMonitorService extends NotificationListenerService {
 
         buildNotification(name, text, isQzone, mul, tag, style, notification, false, true, id  + 1 + id_group0, isGroupMsg);
 
-        if(Build.VERSION.SDK_INT >= 24)//Nougat
+        if(Build.VERSION.SDK_INT >= 24 && PreferenceManager.getDefaultSharedPreferences(this).getBoolean("use_notif_group", false))//Nougat
             buildNotification(name, text, isQzone, mul, tag, null, notification, true, true, id_group0, false);
         /*
         for(int i = 0; i< notifs.size(); i++){
