@@ -32,14 +32,8 @@
                 android:key="ringtone"
                 android:title="@string/pref_ringtone" />
             <SwitchPreference
-                android:key="ignore_group"
-                android:title="@string/pref_ignore_group" />
-            <SwitchPreference
                 android:key="disable_float"
                 android:title="@string/pref_disable_float" />
-            <SwitchPreference
-                android:key="ignore_group_float"
-                android:title="@string/pref_ignore_group_float" />
             <SwitchPreference
                 android:key="use_multi_line"
                 android:title="@string/pref_use_multi_line" />
@@ -57,6 +51,19 @@
                 android:defaultValue="true"
                 android:dependency="use_group"
                 android:title="@string/pref_use_notif_group" />
+            <PreferenceScreen
+                android:title="@string/pref_cate_group"
+                android:dependency="use_group">
+                <SwitchPreference
+                    android:key="ignore_group_msg"
+                    android:title="@string/pref_ignore_group_msg" />
+                <SwitchPreference
+                    android:key="ignore_group_float"
+                    android:title="@string/pref_ignore_group_float" />
+                <SwitchPreference
+                    android:key="ignore_group"
+                    android:title="@string/pref_ignore_group" />
+            </PreferenceScreen>
         </PreferenceScreen>
         <SwitchPreference
             android:key="hide_share"
