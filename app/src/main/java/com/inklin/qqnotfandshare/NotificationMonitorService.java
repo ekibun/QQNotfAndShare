@@ -128,10 +128,10 @@ public class NotificationMonitorService extends NotificationListenerService {
         if(PreferenceManager.getDefaultSharedPreferences(this).getBoolean("use_group", false) ?
                 notif_group(count, tag, title, notf_ticker, notf_text, mul, isQzone, notification, maxMsgLength) :
                 notif_list(count, tag, title, notf_ticker, notf_text, mul, isQzone, notification, maxMsgLength)){
-            if(Build.VERSION.SDK_INT >= 23)
-                setNotificationsShown(new String[]{sbn.getKey()});
-            cancelNotification(sbn.getKey());
         }
+        if(Build.VERSION.SDK_INT >= 23)
+            setNotificationsShown(new String[]{sbn.getKey()});
+        cancelNotification(sbn.getKey());
     }
 
     private class NotifInfo{
@@ -206,7 +206,7 @@ public class NotificationMonitorService extends NotificationListenerService {
         buildNotification(name, text, isQzone, mul, tag, style, notification, false, true, id  + 1 + id_group0, isGroupMsg);
 
         if(Build.VERSION.SDK_INT >= 24 && PreferenceManager.getDefaultSharedPreferences(this).getBoolean("use_notif_group", false))//Nougat
-            buildNotification(name, text, isQzone, mul, tag, null, notification, true, true, id_group0, false);
+            buildNotification(name, text, isQzone, mul, tag, null, notification, true, true, id_group0, isGroupMsg);
         return true;
     }
 
@@ -251,8 +251,13 @@ public class NotificationMonitorService extends NotificationListenerService {
         if(isGroupMsg && sp.getBoolean("ignore_group_msg", false))
             return;
 
-        boolean noFloat = sp.getBoolean("disable_float", false);
-        noFloat |= isGroupMsg && sp.getBoolean("ignore_group_float", false);
+        //boolean noFloat = sp.getBoolean("disable_float", false);
+        //noFloat |= isGroupMsg && sp.getBoolean("ignore_group_float", false);
+
+        int priority = Integer.parseInt(sp.getString("priority", "0"));
+        if(isGroupMsg)
+            priority = Math.min(priority,Integer.parseInt(sp.getString("group_priority", "0")));
+        priority = Math.min(notification.priority, priority);
         Notification.Builder builder = new Notification.Builder(this)
                 //.setSubText(getString(getStringId(tag)))
                 .setContentTitle(title)
@@ -264,8 +269,7 @@ public class NotificationMonitorService extends NotificationListenerService {
                 .setAutoCancel(true)
                 .setContentIntent(notification.contentIntent)
                 .setDeleteIntent(notification.deleteIntent)
-                .setPriority(setGroupSummary ? Notification.PRIORITY_MIN : noFloat && notification.priority > Notification.PRIORITY_DEFAULT ?
-                        Notification.PRIORITY_DEFAULT : notification.priority)
+                .setPriority(setGroupSummary ? Notification.PRIORITY_MIN : priority)
                 //.setSound(notification.sound)
                 .setLights(notification.ledARGB, notification.ledOnMS, notification.ledOffMS)
                 .setVibrate(notification.vibrate)
@@ -292,7 +296,7 @@ public class NotificationMonitorService extends NotificationListenerService {
 
         if(group)
             builder.setGroup("GROUP");
-        boolean sound = !isGroupMsg || !sp.getBoolean("ignore_group", false);
+        boolean sound = !isGroupMsg || !sp.getBoolean("ignore_group_sound", false);
         if(!setGroupSummary && sound)
             builder.setSound(PreferencesUtils.getRingtone(this));
         ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).notify(id, builder.build());

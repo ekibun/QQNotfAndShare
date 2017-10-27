@@ -28,10 +28,26 @@
     <string name="pref_icon_path">图标路径</string>
     <string name="pref_use_default_sound">系统提示音</string>
     <string name="pref_ringtone">提示音</string>
-    <string name="pref_disable_float">禁用浮动通知</string>
+    <string name="pref_priority">通知优先级</string>
+    <string-array name="pref_priority">
+        <item>最高</item>
+        <item>高</item>
+        <item>中</item>
+        <item>低</item>
+        <item>最低</item>
+    </string-array>
+    <string-array name="pref_priority_value">
+        <item>2</item>
+        <item>1</item>
+        <item>0</item>
+        <item>-1</item>
+        <item>-2</item>
+    </string-array>
+    <!--<string name="pref_disable_float">禁用浮动通知</string>-->
     <string name="pref_cate_group">群组消息</string>
     <string name="pref_ignore_group_msg">忽略群消息</string>
-    <string name="pref_ignore_group">忽略群组提示音</string>
+    <string name="pref_group_priority">群组优先级</string>
+    <string name="pref_ignore_group_sound">忽略群组提示音</string>
     <string name="pref_ignore_group_float">忽略群组浮动通知</string>
     <string name="pref_use_multi_line">多行显示单条消息</string>
     <string name="pref_max_single_msg">单条消息最大字数</string>

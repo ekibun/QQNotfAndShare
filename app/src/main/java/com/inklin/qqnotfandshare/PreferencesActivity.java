@@ -166,6 +166,12 @@ public class PreferencesActivity extends Activity {
             ListPreference listPref = (ListPreference) findPreference("icon_mode");
             listPref.setSummary(listPref.getEntry());
 
+            listPref = (ListPreference) findPreference("priority");
+            listPref.setSummary(listPref.getEntry());
+
+            listPref = (ListPreference) findPreference("group_priority");
+            listPref.setSummary(listPref.getEntry());
+
             Preference dirPref = (Preference) findPreference("icon_path");
             dirPref.setEnabled(Integer.parseInt(listPref.getValue())==2);
             dirPref.setSummary(PreferencesUtils.getIconPath(getActivity()));
@@ -178,11 +184,11 @@ public class PreferencesActivity extends Activity {
             Preference notfPref = (Preference) findPreference("notf_permit");
             notfPref.setSummary(getString(isNotificationListenerEnabled(getActivity())? R.string.pref_enable_permit : R.string.pref_disable_permit));
 
-            //Preference savePref = (Preference) findPreference("save_permit");
-            //savePref.setSummary(getString(isStorageEnable()? R.string.pref_enable_permit : R.string.pref_disable_permit));
-
             Preference acesPref = (Preference) findPreference("aces_permit");
             acesPref.setSummary(getString(isAccessibilitySettingsOn(getActivity())? R.string.pref_enable_permit : R.string.pref_disable_permit));
+
+            //Preference savePref = (Preference) findPreference("save_permit");
+            //savePref.setSummary(getString(isStorageEnable()? R.string.pref_enable_permit : R.string.pref_disable_permit));
 
             EditTextPreference numberPref = (EditTextPreference) findPreference("max_single_msg");
             numberPref.setSummary(numberPref.getText());
