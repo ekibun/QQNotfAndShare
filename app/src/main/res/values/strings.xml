@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">QQ\0</string>
+    <string name="app_name">QQ通知增强</string>
     <string name="service_notif">QQ通知扩展服务</string>
     <string name="service_access">QQ通知隐藏服务</string>
     <string name="activity_share">分享给QQ好友</string>
@@ -7,7 +7,7 @@
     <string name="acc_desc">（可选）用于在QQ打开时隐藏QQ消息</string>
 
     <!--设置页-->
-    <string name="pref_cate_permit">权限</string>
+    <string name="pref_cate_permit">必要权限</string>
     <string name="pref_notf_permit">通知使用权</string>
     <string name="pref_aces_permit">无障碍服务</string>
     <!--<string name="pref_save_permit">存储权限</string>-->
@@ -78,7 +78,8 @@
         网易云链接分享可直接播放\n\n
         如果QQ通知没变化，请尝试重启手机\n
         如果QQ通知有效后突然无效，请尝试重新开关通知使用权\n\n
-        隐藏图标后可在无障碍设置或应用信息页找到设置入口
+        隐藏图标后可在无障碍设置或应用信息页找到设置入口\n
+        3.基于开源项目QQNotfAndShare二次开发，感谢原作者
     </string>
     <string name="about_dialog_support">打赏</string>
     <string name="about_dialog_github">GitHub</string>

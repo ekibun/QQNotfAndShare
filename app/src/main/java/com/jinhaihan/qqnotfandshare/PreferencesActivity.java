@@ -1,45 +1,32 @@
-package com.inklin.qqnotfandshare;
+package com.jinhaihan.qqnotfandshare;
 
 import android.Manifest;
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.NotificationManager;
 import android.content.ComponentName;
-import android.content.ContentUris;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.preference.EditTextPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
-import android.provider.DocumentsContract;
-import android.provider.MediaStore;
 import android.provider.Settings;
 import android.text.TextUtils;
-import android.util.Log;
-import android.view.View;
-import android.widget.Toast;
 
-import com.inklin.qqnotfandshare.utils.FileUtils;
-import com.inklin.qqnotfandshare.utils.PreferencesUtils;
+import com.jinhaihan.qqnotfandshare.utils.FileUtils;
+import com.jinhaihan.qqnotfandshare.utils.PreferencesUtils;
 
 import java.io.File;
 import java.net.URISyntaxException;
-import java.util.Set;
 
 
 public class PreferencesActivity extends Activity {
@@ -236,7 +223,7 @@ public class PreferencesActivity extends Activity {
             public void onClick(DialogInterface dialog, int which) {
                 Intent intent = new Intent();
                 intent.setAction(Intent.ACTION_VIEW);
-                Uri content_url = Uri.parse("https://github.com/acaoairy/QQNotfAndShare");
+                Uri content_url = Uri.parse("https://github.com/Jinhaihan/QQNotfAndShare");
                 intent.setData(content_url);
                 startActivity(Intent.createChooser(intent, null));
             }
@@ -245,7 +232,7 @@ public class PreferencesActivity extends Activity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 String intentFullUrl = "intent://platformapi/startapp?saId=10000007&" +
-                        "clientVersion=3.7.0.0718&qrcode=https%3A%2F%2Fqr.alipay.com%2FFKX04432XWNQIFV2UDCR64%3F_s" +
+                        "clientVersion=3.7.0.0718&qrcode=https%3A%2F%2Fqr.alipay.com%2Ffkx075954pd27u8cqiwvg68%3F_s" +
                         "%3Dweb-other&_t=1472443966571#Intent;" +
                         "scheme=alipayqr;package=com.eg.android.AlipayGphone;end";
                 try {

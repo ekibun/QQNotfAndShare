@@ -1,4 +1,4 @@
-package com.inklin.qqnotfandshare;
+package com.jinhaihan.qqnotfandshare;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
@@ -21,6 +21,6 @@ public class ExampleInstrumentedTest {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getTargetContext();
 
-        assertEquals("com.inklin.qqnotfandshare", appContext.getPackageName());
+        assertEquals("com.jinhaihan.qqnotfandshare", appContext.getPackageName());
     }
 }

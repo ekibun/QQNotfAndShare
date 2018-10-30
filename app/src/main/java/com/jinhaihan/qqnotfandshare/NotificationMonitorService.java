@@ -1,6 +1,6 @@
-package com.inklin.qqnotfandshare;
+package com.jinhaihan.qqnotfandshare;
 
-
+import android.support.v4.app.NotificationCompat;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -14,10 +14,9 @@ import android.os.Build;
 import android.preference.PreferenceManager;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
-import android.util.Log;
 
-import com.inklin.qqnotfandshare.utils.FileUtils;
-import com.inklin.qqnotfandshare.utils.PreferencesUtils;
+import com.jinhaihan.qqnotfandshare.utils.FileUtils;
+import com.jinhaihan.qqnotfandshare.utils.PreferencesUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -181,9 +180,11 @@ public class NotificationMonitorService extends NotificationListenerService {
         else
             notifs.set(id, newInfo);
 
-        Notification.Style style;
+        NotificationCompat.Style style;
+        String str = "";
+        NotificationCompat.BigTextStyle bstyle = new NotificationCompat.BigTextStyle();
         if(maxMsgLength > 0){
-            Notification.BigTextStyle bstyle = new Notification.BigTextStyle();
+
             bstyle.setBigContentTitle(name);
             for(int m = 1; m < newInfo.msgs.size() && m < maxCount; m++){
                 String msg = newInfo.msgs.get(m);
@@ -194,13 +195,16 @@ public class NotificationMonitorService extends NotificationListenerService {
             bstyle.bigText(text);
             style = bstyle;
         }else{
-            Notification.InboxStyle istyle = new Notification.InboxStyle();
+            NotificationCompat.InboxStyle istyle = new NotificationCompat.InboxStyle();
             istyle.setBigContentTitle(name);
             for(int m = 0; m < newInfo.msgs.size() && m < maxCount; m++){
                 String msg = newInfo.msgs.get(m);
                 istyle.addLine(msg);
+                str += msg + "\n\n";
             }
-            style = istyle;
+            str = str.substring(0,str.length() - 2);
+            bstyle.bigText(str);
+            style = bstyle;
         }
 
         buildNotification(name, text, isQzone, mul, tag, style, notification, false, true, id  + 1 + id_group0, isGroupMsg);
@@ -219,13 +223,15 @@ public class NotificationMonitorService extends NotificationListenerService {
             msgs.remove(i);
         }
         String first = "";
-        Notification.InboxStyle istyle = new Notification.InboxStyle();
-        Notification.BigTextStyle bstyle = new Notification.BigTextStyle();
+        NotificationCompat.InboxStyle istyle = new NotificationCompat.InboxStyle();
+        NotificationCompat.BigTextStyle bstyle = new NotificationCompat.BigTextStyle();
         istyle.setBigContentTitle(title);
+        String str = "";
         for (String s : msgs) {
             count--;
             String[] ss = s.split("\n");
             String m = ss.length > 1 ? ss[mul ? 0 : 1] : s;
+
             if(maxMsgLength > 0){
                 if (m.length() > maxMsgLength)
                     m = m.substring(0, maxMsgLength) + "...";
@@ -235,18 +241,21 @@ public class NotificationMonitorService extends NotificationListenerService {
                     first = first + "\n" + m;
             }else{
                 istyle.addLine(m);
+                str += m + "\n";
                 if (first.isEmpty())
                     first = m;
             }
             if (count == 0)
                 break;
         }
-        buildNotification(title, first, isQzone, mul, tag, maxMsgLength > 0 ? bstyle : istyle, notification, false, false, isQzone ? id_qzone : tag, false);
+        str = str.substring(0,str.length() - 1);
+        bstyle.bigText(str);
+        buildNotification(title, first, isQzone, mul, tag, /*maxMsgLength > 0 ? bstyle : istyle*/bstyle, notification, false, false, isQzone ? id_qzone : tag, false);
         return true;
     }
 
     PendingIntent lastIntent;
-    private void buildNotification(String title, String text, boolean isQzone, boolean mul, int tag, Notification.Style style, Notification notification, boolean setGroupSummary, boolean group, int id, boolean isGroupMsg){
+    private void buildNotification(String title, String text, boolean isQzone, boolean mul, int tag, NotificationCompat.Style style, Notification notification, boolean setGroupSummary, boolean group, int id, boolean isGroupMsg){
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
         if(isGroupMsg && sp.getBoolean("ignore_group_msg", false))
             return;
@@ -258,7 +267,9 @@ public class NotificationMonitorService extends NotificationListenerService {
         if(isGroupMsg)
             priority = Math.min(priority,Integer.parseInt(sp.getString("group_priority", "0")));
         priority = Math.min(notification.priority, priority);
-        Notification.Builder builder = new Notification.Builder(this)
+//        style = new NotificationCompat.BigTextStyle()
+//                .bigText("hahahah\nahah\nhasdhaskx\njchxkch\noseishfbxclehsdnxcsihdkncvusoidlvcnos;rihfxvcrhdfoibhdo;iflkhbsodifcn.xkhvosrjkfbxcvlo");
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
                 //.setSubText(getString(getStringId(tag)))
                 .setContentTitle(title)
                 .setContentText(text)
@@ -272,7 +283,8 @@ public class NotificationMonitorService extends NotificationListenerService {
                 .setPriority(setGroupSummary ? Notification.PRIORITY_MIN : priority)
                 //.setSound(notification.sound)
                 .setLights(notification.ledARGB, notification.ledOnMS, notification.ledOffMS)
-                .setVibrate(notification.vibrate)
+                //.setVibrate(notification.vibrate)
+                .setDefaults(Notification.DEFAULT_VIBRATE)
                 .setShowWhen(true)
                 .setGroupSummary(setGroupSummary);
         setIcon(builder, tag, isQzone);
@@ -332,7 +344,7 @@ public class NotificationMonitorService extends NotificationListenerService {
 
     private String path = "";
     private Icon icon;
-    private void setIcon(Notification.Builder builder, int tag, boolean isQzone){
+    private void setIcon(NotificationCompat.Builder builder, int tag, boolean isQzone){
         if(isQzone) {
             builder.setSmallIcon(R.drawable.ic_qzone);
             return;
@@ -348,7 +360,7 @@ public class NotificationMonitorService extends NotificationListenerService {
                     icon = Icon.createWithBitmap(bmp);
             }
             if(icon != null) {
-                builder.setSmallIcon(icon);
+                builder.setSmallIcon(R.drawable.ic_qq);
                 return;
             }
         }

@@ -1,4 +1,4 @@
-package com.inklin.qqnotfandshare;
+package com.jinhaihan.qqnotfandshare;
 
 import android.app.Activity;
 import android.content.Intent;

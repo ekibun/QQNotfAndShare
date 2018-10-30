@@ -1,4 +1,4 @@
-package com.inklin.qqnotfandshare.utils;
+package com.jinhaihan.qqnotfandshare.utils;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -6,8 +6,6 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.Environment;
-import android.preference.Preference;
 import android.preference.PreferenceManager;
 
 /**

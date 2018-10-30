@@ -1,4 +1,4 @@
-package com.inklin.qqnotfandshare.utils;
+package com.jinhaihan.qqnotfandshare.utils;
 
 import android.content.Context;
 import android.graphics.Bitmap;

@@ -1,20 +1,11 @@
-package com.inklin.qqnotfandshare;
+package com.jinhaihan.qqnotfandshare;
 
 import android.accessibilityservice.AccessibilityService;
-import android.app.ActivityManager;
-import android.app.Notification;
 import android.app.NotificationManager;
-import android.app.Service;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.os.IBinder;
-import android.os.Parcelable;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
-
-import java.util.List;
 
 public class AccessibilityMonitorService extends AccessibilityService {
 

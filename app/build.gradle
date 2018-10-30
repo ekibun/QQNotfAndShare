@@ -2,13 +2,13 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 25
-    buildToolsVersion '26.0.2'
+    buildToolsVersion '28.0.3'
     defaultConfig {
-        applicationId "com.inklin.qqnotfandshare"
+        applicationId "com.jinhaihan.qqnotfandshare"
         minSdkVersion 21
         targetSdkVersion 25
         versionCode 26
-        versionName "0.5.0"
+        versionName "0.97"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -26,4 +26,6 @@ dependencies {
     })
     testCompile 'junit:junit:4.12'
     compile files('libs/open_sdk_r5793_lite.jar')
+    compile "com.android.support:support-v13:25.4.0"
+
 }

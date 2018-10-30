@@ -9,7 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content" >
         <fragment
-            android:name="com.inklin.qqnotfandshare.PreferencesActivity$PreferencesFragment"
+            android:name="com.jinhaihan.qqnotfandshare.PreferencesActivity$PreferencesFragment"
             android:tag=".SettingsFragment"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
