@@ -1,5 +1,8 @@
 # QQNotfAndShare
 
+弃坑了弃坑了
+请转向https://github.com/Jinhaihan/QQNotfAndShare
+
 ## 主要功能
 ### 1.替换QQ消息通知（支持QQ正式版轻聊版和TIM）
 显示每条消息的内容  
